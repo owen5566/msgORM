@@ -4,7 +4,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 rtrim($_GET["url"], "/")."<hr>"; 
 $url = explode("/", rtrim($_GET["url"], "/"));
 //設定資料庫連線
-$db = new PDO("mysql:host=127.0.0.1;dbname=RD5_db;port=3306", "root", "");
+$db = new PDO("mysql:host=localhost;dbname=RD5_db;port=8889", "root", "root");
 $db->exec("set names utf8");
 switch ($method." ".$url[0]) {
     case 'POST signUp':

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="js/jquery-3.2.1.min.js"></script>
+    <title>留言板</title>
+    <style>
+        td {
+            border: 1px solid #333;
+        }
+        .user {
+            width: 20ch;
+        }
+        .content {
+            width: 700px;
+        }
+    </style>
+</head>
+<body>
+    <table>
+        <thead>
+            <tr>
+                <th colspan="2">留言板</th>
+            </tr>
+            <tr>
+                <th>使用者</th>
+                <th>留言內容</th>
+                <th>留言時間</th>
+                <th>最後更新</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td id ="userName" class = "user">user</td>
+                <td id ="msg" class="content">The table bodyfffffffffffff</td>
+                <td id = "time">10/10</td>
+                <td id = "time">2020-10-10 00:00:00</td>
+                <td><button>修改</button><button>刪除</button></td>
+            </tr>
+            <tr>
+                <td id ="userName">userwwwf</td>
+                <td id ="msg" class="content">The table body</td>
+                <td id = "time">10/10</td>
+                <td id = "time">10/10</td>
+                <td><button>修改</button><button>刪除</button></td>
+            </tr>
+        </tbody>
+    </table>
+    <br><button id = "btnUpdate">更新</button><hr><br>    
+    <div>
+        <label for = "txtNameInput">暱稱</label>
+        <br>
+        <input type = "text" id = "txtNameInput">
+        <br>
+        <label for = "txtMsgInput">留言內容</label>
+        <br>
+        <textarea id = "txtMsgInput" rows="4" cols="50"></textarea>
+        <br>
+        <button id = "btnSubmit">送出</button>
+    </div>
+    <script>
+        $(function(){
+            getData();
+            $('#btnSubmit').click(()=>{
+                let insertMsg = {
+                    userName:$("#txtNameInput").val(),
+                    msg:$("#txtMsgInput").val()
+                }
+                $.ajax({
+                    type:"POST",
+                    url:"msgBoard.php?action=insert",
+                    data:insertMsg
+                }).then(function(e){
+                    if (e=="1") {
+                        console.log("success");
+                    } else {
+                        console.log(e);
+                    }
+                    getData();
+                })
+            })
+            function getData()
+            {
+                $.ajax({
+                    type:"POST",
+                    url:"msgBoard.php?action=getMsg"
+                }).then(function(e){
+                    console.log(typeof JSON.parse(e));
+                    let data = JSON.parse(e);
+
+                    $("tbody").html("");
+                    data.forEach(element => {
+                        $("tbody").append(
+                            `<tr>
+                                <td id = "msgId" style="display:none" value=${element.msgId}></td>
+                                <td id ="userName" class = "user">${element.userName}</td>
+                                <td id ="msg" class="content">${element.msg}</td>
+                                <td id = "time">${element.createTime}</td>
+                                <td id = "time">${element.updateTime}</td>
+                                <td><button>修改</button><button>刪除</button></td>
+                            </tr>`
+                        );
+                    });
+                })
+            }
+        })
+    </script>
+</body>
+</html>
