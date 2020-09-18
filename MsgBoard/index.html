@@ -47,8 +47,8 @@
             </tr>
         </tbody>
     </table>
-    <br><button id = "btnUpdate">更新</button><hr><br>    
-    <div>
+    <br><button id = "btnUpdate">更新</button><br><span>系統訊息：<div id = "systemMsg"></div></span><hr><br>    
+    <div id = "newMsgBlock">
         <label for = "txtNameInput">暱稱</label>
         <br>
         <input type = "text" id = "txtNameInput">
@@ -59,9 +59,21 @@
         <br>
         <button id = "btnSubmit">送出</button>
     </div>
+    <div id = "updateMsgBlock" hidden>
+        
+        <br>
+        <label for = "txtMsgInput">修改留言內容</label>
+        <br>
+        <input id = "msgIdToUpdate" val="" hidden>
+        <textarea id = "txtMsgInput" rows="4" cols="50"></textarea>
+        <br>
+        <button id = "btnUpateSubmit" onclick="updateMsg()">修改</button>
+        <button id = "btnUpdateCancel" onclick="updateMsgShow('cancel')">取消</button>
+    </div>
     <script>
         $(function(){
             getData();
+            // 新增一筆留言
             $('#btnSubmit').click(()=>{
                 let insertMsg = {
                     userName:$("#txtNameInput").val(),
@@ -73,38 +85,98 @@
                     data:insertMsg
                 }).then(function(e){
                     if (e=="1") {
-                        console.log("success");
+                        $("#systemMsg").text("新增成功");
+                        $("#txtNameInput").val("");
                     } else {
-                        console.log(e);
+                        $("#systemMsg").text(JSON.parse(e));
                     }
                     getData();
                 })
             })
-            function getData()
-            {
-                $.ajax({
-                    type:"POST",
-                    url:"msgBoard.php?action=getMsg"
-                }).then(function(e){
-                    console.log(typeof JSON.parse(e));
-                    let data = JSON.parse(e);
-
-                    $("tbody").html("");
-                    data.forEach(element => {
-                        $("tbody").append(
-                            `<tr>
-                                <td id = "msgId" style="display:none" value=${element.msgId}></td>
-                                <td id ="userName" class = "user">${element.userName}</td>
-                                <td id ="msg" class="content">${element.msg}</td>
-                                <td id = "time">${element.createTime}</td>
-                                <td id = "time">${element.updateTime}</td>
-                                <td><button>修改</button><button>刪除</button></td>
-                            </tr>`
-                        );
-                    });
-                })
-            }
         })
+
+        //刪除一筆留言
+        function delMsg(msgIdToDel) 
+        {
+            $.ajax({
+                type:"POST",
+                url :"msgBoard.php?action=delMsg",
+                data:{msgIdToDel:msgIdToDel}
+            }).then(function(e){
+                if (e=="1") {
+                    $("#systemMsg").text("刪除成功");
+                } else {
+                    $("#systemMsg").text(JSON.parse(e));
+                }
+                getData();
+            })
+        }
+
+        // 進入更改留言
+        function updateMsgShow(msgIdToUpdate) 
+        {
+            // 點擊取消
+            if (msgIdToUpdate =="cancel") {
+                $("#newMsgBlock").show();
+                $("#updateMsgBlock").hide();
+                return;
+            }
+
+            $("#newMsgBlock").hide();
+            $("#updateMsgBlock").show()
+                .find("input").val(msgIdToUpdate)
+                .parent().find("textarea").val(
+                    $("#tr"+msgIdToUpdate).find("#msg").text()
+                );
+        }
+
+        // 送出更改
+        function updateMsg() 
+        {
+            let dataToServer = {
+                msgId : $("#updateMsgBlock").find("input").val(),
+                msg   : $("#updateMsgBlock").find("textarea").val()
+            }
+            $.ajax({
+                    type: "POST",
+                    url : "msgBoard.php?action=updateMsg",
+                    data: dataToServer
+                }).then(function(e){
+                    if (e=="1") {
+                        updateMsgShow("cancel");
+                        $("#systemMsg").text("修改成功");
+                    } else {
+                        $("#systemMsg").text(e);
+                    }
+                    getData();
+                })
+        }
+
+        // 讀取資料庫，刷新 table
+        function getData()
+        {
+            $.ajax({
+                type:"POST",
+                url:"msgBoard.php?action=getMsg"
+            }).then(function(e){
+                let data = JSON.parse(e);
+
+                $("tbody").html("");
+                data.forEach(element => {
+                    $("tbody").append(
+                        `<tr id ="tr${element.msgId}">
+                            <td id = "msgId" style="display:none" value=${element.msgId}></td>
+                            <td id ="userName" class = "user">${element.userName}</td>
+                            <td id ="msg" class="content">${element.msg}</td>
+                            <td id = "time">${element.createTime}</td>
+                            <td id = "time">${element.updateTime}</td>
+                            <td><button id = "btnUpdateMsg${element.msgId}" value="${element.msgId}" onclick="updateMsgShow(${element.msgId})">修改</button>
+                            <button id = "btnDelMsg${element.msgId}" onclick="delMsg(${element.msgId})">刪除</button></td>
+                        </tr>`
+                    );
+                });
+            })
+        }
     </script>
 </body>
 </html>
