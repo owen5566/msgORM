@@ -1,6 +1,5 @@
 <?php
     require_once("dbConn.php");
-    date_default_timezone_set("Asia/Taipei");    
 
     $url = explode("/", rtrim($_GET["action"], "/"));
 
@@ -23,7 +22,7 @@
     {
         global $db;
         $dataToClient = array();
-        $sqlGetMsg    = "select * from msgBoard";
+        $sqlGetMsg    = "select * from msgBoard order by updateTime DESC";
         $reuslt       = $db->query($sqlGetMsg);
 
         while ($row = $reuslt->fetch(PDO::FETCH_ASSOC)) {
