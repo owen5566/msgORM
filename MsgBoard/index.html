@@ -15,13 +15,21 @@
         .content {
             width: 700px;
         }
+        a { 
+            text-decoration: none; 
+        }
+        .currentPage {
+            font-size: x-large;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
     </style>
 </head>
 <body>
+    <!-- 留言板table -->
     <table>
         <thead>
             <tr>
-                <th colspan="2">留言板</th>
+                <th colspan="2">留言板 o0o</th>
             </tr>
             <tr>
                 <th>使用者</th>
@@ -31,23 +39,21 @@
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <td id ="userName" class = "user">user</td>
-                <td id ="msg" class="content">The table bodyfffffffffffff</td>
-                <td id = "time">10/10</td>
-                <td id = "time">2020-10-10 00:00:00</td>
-                <td><button>修改</button><button>刪除</button></td>
-            </tr>
-            <tr>
-                <td id ="userName">userwwwf</td>
-                <td id ="msg" class="content">The table body</td>
-                <td id = "time">10/10</td>
-                <td id = "time">10/10</td>
-                <td><button>修改</button><button>刪除</button></td>
-            </tr>
+            
         </tbody>
     </table>
-    <br><button id = "btnUpdate">更新</button><br><span>系統訊息：<div id = "systemMsg"></div></span><hr><br>    
+    <div id = "HrefChangePage"></div>
+    <br><div id = 'outputMsg'></div>
+    <label for="selectNumOfOutput">單頁顯示留言數：</label>
+    <select name="" id="selectNumOfOutput">
+        <option value="10" selected>10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+        <option value="9999">all</option>
+    </select>
+    <br><span>系統訊息：<span id = "systemMsg"></span></span>
+    <hr><br>    
+    <!-- 輸入文字區 -->
     <div id = "newMsgBlock">
         <label for = "txtNameInput">暱稱</label>
         <br>
@@ -86,14 +92,22 @@
                 }).then(function(e){
                     if (e=="1") {
                         $("#systemMsg").text("新增成功");
-                        $("#txtNameInput").val("");
+                        $("#txtMsgInput").val("");
                     } else {
                         $("#systemMsg").text(JSON.parse(e));
                     }
                     getData();
                 })
             })
+
+            //選擇單頁顯示數量
+            $("#selectNumOfOutput").change(function(){
+                getData(currentIdx);
+            });
         })
+
+        let currentIdx = 0;
+        let currentNumOfResult = 10;
 
         //刪除一筆留言
         function delMsg(msgIdToDel) 
@@ -108,7 +122,7 @@
                 } else {
                     $("#systemMsg").text(JSON.parse(e));
                 }
-                getData();
+                getData(currentIdx);
             })
         }
 
@@ -148,19 +162,45 @@
                     } else {
                         $("#systemMsg").text(e);
                     }
-                    getData();
+                    getData(currentIdx);
                 })
         }
 
         // 讀取資料庫，刷新 table
-        function getData()
+        function getData(startIdx = 0)
         {
+            currentIdx         = startIdx;
+            currentNumOfResult = $("#selectNumOfOutput :selected").val()
+
+            dataToServer = {
+                startIdx : startIdx * $("#selectNumOfOutput :selected").val() ,
+                numOfResult : currentNumOfResult
+            }
+            console.log(dataToServer);
             $.ajax({
-                type:"POST",
-                url:"msgBoard.php?action=getMsg"
+                type: "POST",
+                url : "msgBoard.php?action=getMsg",
+                data: dataToServer
             }).then(function(e){
                 let data = JSON.parse(e);
+                let count = data.shift().count - 0;
 
+                //產生分頁連結
+                $("#HrefChangePage").html("");
+                if (startIdx !== 0) {
+                    $("#HrefChangePage").html(`<a href='javascript:getData(${(startIdx-1)})'> << </a>`);
+                }
+                let start = (startIdx-0 < 4) ? 0 : startIdx - 5;//總頁數大於 10 時，顯示當前頁數的前後10筆
+                for (i = start; i < count / dataToServer.numOfResult && i < start + 10; i++) {
+                    let styleCurrent = (i == startIdx) ? "class = 'currentPage'" : "" ;
+                    $("#HrefChangePage").append(`<a href='javascript:getData(${i})' ${styleCurrent}> ${i+1} </a>`);console.log(count / dataToServer.numOfResult);
+                }
+                if (startIdx < Math.floor(count / dataToServer.numOfResult)) {
+                    $("#HrefChangePage").append(`<a href='javascript:getData(${(startIdx+1)})'> >> </a>`);
+                }
+                $("#outputMsg").html("共有" + count + "則留言");
+                
+                //產生留言區內容
                 $("tbody").html("");
                 data.forEach(element => {
                     $("tbody").append(

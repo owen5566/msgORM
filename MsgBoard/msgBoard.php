@@ -22,10 +22,25 @@
     {
         global $db;
         $dataToClient = array();
-        $sqlGetMsg    = "select * from msgBoard order by updateTime DESC";
-        $reuslt       = $db->query($sqlGetMsg);
+        //總留言數
+        $sqlGetMsgCount = "select count(*) as count from msgBoard";
+        $reuslt         = $db->query($sqlGetMsgCount);
+        $dataToClient[] = $reuslt->fetch(PDO::FETCH_ASSOC);
+        
+        //撈資料
+        $startIdx    = $_POST["startIdx"];
+        $numOfResult = $_POST["numOfResult"];
+        $sqlGetMsg   = "select * from msgBoard order by createTime DESC LIMIT :startIdx , :numOfResult";
 
-        while ($row = $reuslt->fetch(PDO::FETCH_ASSOC)) {
+        $sqlGetMsg   = $db->prepare($sqlGetMsg);
+        $sqlGetMsg->bindParam("startIdx", intval($startIdx), PDO::PARAM_INT);
+        $sqlGetMsg->bindParam("numOfResult", intval($numOfResult), PDO::PARAM_INT);
+        
+        if (!$sqlGetMsg->execute()) {
+            return $db->errorInfo();
+        }
+
+        while ($row = $sqlGetMsg->fetch(PDO::FETCH_ASSOC)) {
             $dataToClient[] = $row;
         }
         return $dataToClient;
@@ -55,9 +70,12 @@
     {
         global $db;
         $msgIdToDel = $_POST["msgIdToDel"];
-        $sqlDelMsg  = "delete from msgBoard where msgId = $msgIdToDel";
+        
+        $sqlDelMsg  = "delete from msgBoard where msgId = :msgIdToDel";
+        $sqlDelMsg  = $db->prepare($sqlDelMsg);
+        $sqlDelMsg->bindParam("msgIdToDel", intval($msgIdToDel), PDO::PARAM_INT);
 
-        if ($db->query($sqlDelMsg)){
+        if ($sqlDelMsg->execute()){
             return 1;
         } else {
             return 0;
