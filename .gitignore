@@ -1,2 +1,4 @@
 orm/vendor
+.DS_store
+composer.lock
 

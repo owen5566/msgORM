@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="js/jquery-3.2.1.min.js"></script>
+    <title>留言板</title>
+    <style>
+        td {
+            border: 1px solid #333;
+        }
+        .user {
+            width: 20ch;
+        }
+        .content {
+            width: 700px;
+        }
+        a { 
+            text-decoration: none; 
+        }
+        .currentPage {
+            font-size: x-large;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            pointer-events: none;
+            cursor: default;
+        }
+    </style>
+</head>
+<body>
+    <!-- 留言板table -->
+    <table>
+        <thead>
+            <tr>
+                <th colspan="2">留言板 o0o</th>
+            </tr>
+            <tr>
+                <th>使用者</th>
+                <th>留言內容</th>
+                <th>留言時間</th>
+                <th>最後更新</th>
+            </tr>
+        </thead>
+        <tbody>
+            
+        </tbody>
+    </table>
+    <div id = "HrefChangePage"></div>
+    <br><div id = 'outputMsg'></div>
+    <label for="selectNumOfOutput">單頁顯示留言數：</label>
+    <select name="" id="selectNumOfOutput">
+        <option value="10" selected>10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+        <option value="9999">all</option>
+    </select>
+    <br><span>系統訊息：<span id = "systemMsg"></span></span>
+    <hr><br>    
+    <!-- 輸入文字區 -->
+    <div id = "newMsgBlock">
+        <label for = "txtNameInput">暱稱</label>
+        <br>
+        <input type = "text" id = "txtNameInput">
+        <br>
+        <label for = "txtMsgInput">留言內容</label>
+        <br>
+        <textarea id = "txtMsgInput" rows="4" cols="50"></textarea>
+        <br>
+        <button id = "btnSubmit">送出</button>
+    </div>
+    <div id = "updateMsgBlock" hidden>
+        
+        <br>
+        <label for = "txtMsgInput">修改留言內容</label>
+        <br>
+        <input id = "msgIdToUpdate" val="" hidden>
+        <textarea id = "txtMsgInput" rows="4" cols="50"></textarea>
+        <br>
+        <button id = "btnUpateSubmit" onclick="updateMsg()">修改</button>
+        <button id = "btnUpdateCancel" onclick="updateMsgShow('cancel')">取消</button>
+    </div>
+    <script>
+        $(function(){
+            getData();
+            // 新增一筆留言
+            $('#btnSubmit').click(()=>{
+                let insertMsg = {
+                    userName:$("#txtNameInput").val(),
+                    msg:$("#txtMsgInput").val()
+                }
+                $.ajax({
+                    type:"POST",
+                    url:"msgBoard.php?action=insert",
+                    data:insertMsg
+                }).then(function(e){
+                    if (e=="1") {
+                        $("#systemMsg").text("新增成功");
+                        $("#txtMsgInput").val("");
+                    } else {
+                        $("#systemMsg").text(JSON.parse(e));
+                    }
+                    getData();
+                })
+            })
+
+            //選擇單頁顯示數量
+            $("#selectNumOfOutput").change(function(){
+                getData();
+            });
+        })
+
+        let currentIdx = 0;
+        let currentNumOfResult = 10;
+
+        //刪除一筆留言
+        function delMsg(msgIdToDel) 
+        {
+            $.ajax({
+                type:"POST",
+                url :"msgBoard.php?action=delMsg",
+                data:{msgIdToDel:msgIdToDel}
+            }).then(function(e){
+                if (e=="1") {
+                    $("#systemMsg").text("刪除成功");
+                } else {
+                    $("#systemMsg").text(JSON.parse(e));
+                }
+                getData(currentIdx);
+            })
+        }
+
+        // 進入更改留言
+        function updateMsgShow(msgIdToUpdate) 
+        {
+            // 點擊取消
+            if (msgIdToUpdate =="cancel") {
+                $("#newMsgBlock").show();
+                $("#updateMsgBlock").hide();
+                return;
+            }
+
+            $("#newMsgBlock").hide();
+            $("#updateMsgBlock").show()
+                .find("input").val(msgIdToUpdate)
+                .parent().find("textarea").val(
+                    $("#tr"+msgIdToUpdate).find("#msg").text()
+                );
+        }
+
+        // 送出更改
+        function updateMsg() 
+        {
+            let dataToServer = {
+                msgId : $("#updateMsgBlock").find("input").val(),
+                msg   : $("#updateMsgBlock").find("textarea").val()
+            }
+            $.ajax({
+                    type: "POST",
+                    url : "msgBoard.php?action=updateMsg",
+                    data: dataToServer
+                }).then(function(e){
+                    if (e=="1") {
+                        updateMsgShow("cancel");
+                        $("#systemMsg").text("修改成功");
+                    } else {
+                        $("#systemMsg").text(e);
+                    }
+                    getData(currentIdx);
+                })
+        }
+
+        // 讀取資料庫，刷新 table
+        function getData(startIdx = 0)
+        {
+            currentIdx         = startIdx;
+            currentNumOfResult = $("#selectNumOfOutput :selected").val()
+
+            dataToServer = {
+                startIdx : startIdx * $("#selectNumOfOutput :selected").val() ,
+                numOfResult : currentNumOfResult
+            }
+
+            $.ajax({
+                type: "POST",
+                url : "msgBoard.php?action=getMsg",
+                data: dataToServer
+            }).then(function(e){
+                let data = JSON.parse(e);
+                let count = data.count - 0;
+                delete data.count;
+                //產生分頁連結
+                $("#HrefChangePage").html("");
+                if (startIdx !== 0) {
+                    $("#HrefChangePage").html(`<a href='javascript:getData(${(startIdx-1)})'> << </a>`);
+                }
+                let start = (startIdx-0 < 4) ? 0 : startIdx - 5;//總頁數大於 10 時，顯示當前頁數的前後10筆
+                for (i = start; i < count / dataToServer.numOfResult && i < start + 10; i++) {
+                    let styleCurrent = (i == startIdx) ? "class = 'currentPage'" : "" ;
+                    $("#HrefChangePage").append(`<a href='javascript:getData(${i})' ${styleCurrent}> ${i+1} </a>`);
+                }
+                if (startIdx+1 < Math.floor(count / currentNumOfResult)) {
+                    $("#HrefChangePage").append(`<a href='javascript:getData(${(startIdx+1)})'> >> </a>`);
+                }
+                $("#outputMsg").html("共有" + count + "則留言");
+                console.log(startIdx+1,Math.floor(count / currentNumOfResult));
+                //產生留言區內容
+                $("tbody").html("");
+                Object.keys(data).forEach(element => {
+                    $("tbody").append(
+                        `<tr id ="tr${data[element].msgId}">
+                            <td id = "msgId" style="display:none" value=${data[element].msgId}></td>
+                            <td id ="userName" class = "user">${data[element].userName}</td>
+                            <td id ="msg" class="content">${data[element].msg}</td>
+                            <td id = "time">${data[element].createTime.date.replace(/.000000/,"")}</td>
+                            <td id = "time">${data[element].updateTime.date.replace(/.000000/,"")}</td>
+                            <td><button id = "btnUpdateMsg${data[element].msgId}" value="${data[element].msgId}" onclick="updateMsgShow(${data[element].msgId})">修改</button>
+                            <button id = "btnDelMsg${data[element].msgId}" onclick="delMsg(${data[element].msgId})">刪除</button></td>
+                        </tr>`
+                    );
+                });
+            })
+        }
+    </script>
+</body>
+</html>

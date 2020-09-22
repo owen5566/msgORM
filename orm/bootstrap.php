@@ -5,19 +5,21 @@ use Doctrine\ORM\EntityManager;
 
 require_once "vendor/autoload.php";
 
+// Create a simple "default" Doctrine ORM configuration for Annotations
 $isDevMode = true;
 $proxyDir = null;
 $cache = null;
 $useSimpleAnnotationReader = false;
 $config = Setup::createAnnotationMetadataConfiguration(array(__DIR__."/src"), $isDevMode, $proxyDir, $cache, $useSimpleAnnotationReader);
 
+// database configuration parameters
 $conn = array(
-    'driver' => 'pdo_mysql',
-    'host' => '127.0.0.1',
-    'user' => 'root',
-    'password' => '',
-    'dbname' => 'RD5_db',
-    'port' => 3306,
+    'driver'   => 'pdo_mysql',
+    'host'     => '127.0.0.1',
+    'dbname'   => 'RD5_db',
+    'user'     => 'root',
+    'password' => 'root',
+    'charset'  => 'UTF8'
 );
 
 // obtaining the entity manager
